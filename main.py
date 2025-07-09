@@ -65,12 +65,13 @@ def clean_cache_folder(cache_dir="cache", max_age_days=MAX_CACHED_TIME):
 def periodic_cache_cleaner():
     clean_cache_folder("cache", 3)
 
-@app.get("/alpine/{version}/{channel}/{platform}/{alpine_file}")
-async def proxy_alpine(request: Request, alpine_file: str, cache_dir='cache'):
+@app.get("/nexus/repository/apk-proxy_dl-cdn.alpinelinux.org/alpine/{version}/{channel}/{platform}/{alpine_file}")
+async def proxy_alpine(request: Request, version: str, channel: str, platform: str, alpine_file: str, cache_dir='cache'):
     if not os.path.exists(cache_dir): os.makedirs(cache_dir)
+    original_path = "/alpine/{}/{}/{}/{}".format(version, channel, platform, alpine_file)
+    original_url = ORIGINAL_ALPINE_URL + original_path
     required_file = cache_dir + request.url.path
     index_path = '/'.join(request.url.path.split("/")[:-1])
-    original_url = ORIGINAL_ALPINE_URL + request.url.path
 
     is_cached = check_cached_file(required_file)
     if is_cached:
