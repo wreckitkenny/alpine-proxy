@@ -1,0 +1,40 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  HUB_NAMESPACE: "wikyhub"
+  HUB_REPOSITORY: "alpine-proxy"
+
+jobs:
+  getVersion:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.app-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get version
+        id: app-version
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+
+  buildPublishImage:
+    needs: getVersion
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.getVersion.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t ${GITHUB_REPOSITORY}:${VERSION} .
+      - name: Login to docker hub
+        uses: actions-hub/docker/login@master
+      - name: Tag new Docker image
+        run: docker tag ${GITHUB_REPOSITORY}:${VERSION} ${HUB_NAMESPACE}/${HUB_REPOSITORY}:${VERSION}
+      - name: Push to Docker hub
+        uses: actions-hub/docker@master
+        with:
+          args: push ${HUB_NAMESPACE}/${HUB_REPOSITORY}:${VERSION}
